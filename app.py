@@ -200,7 +200,7 @@ def stream(media_type, video_id):
 
     base_title = title_pt or title_original
     if not base_title:
-        return jsonify({"streams": []})
+        return jsonify({"streams": [], "error": "TMDB não retornou nenhum título"})
 
     roman = to_roman(season) if season > 1 else None
     attempts = []
@@ -213,16 +213,21 @@ def stream(media_type, video_id):
         attempts.append(title_original)
 
     found = None
+    attempt_errors = []
     for query in attempts:
         try:
             found = resolve_anime_slug(query)
-        except requests.RequestException:
+        except requests.RequestException as e:
             found = None
+            attempt_errors.append(f"{query}: {e}")
         if found:
             break
 
     if not found:
-        return jsonify({"streams": []})
+        return jsonify({
+            "streams": [],
+            "error": f"Não achou anime no AnimeFire. Tentativas: {attempts}. Erros: {attempt_errors}",
+        })
 
     ep_num = episode if media_type == "series" else 1
 
